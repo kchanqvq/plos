@@ -1,0 +1,41 @@
+(load "5-process.plos")
+
+(define make-mutex (lambda () (list 'mutex t)))
+
+(define acquire!
+    (lambda (mutex)
+      (if (cadr mutex)
+          (set-car! (cdr mutex) nil)
+          (progn
+            (yield)
+            (acquire! mutex)))))
+
+(define release!
+    (lambda (mutex)
+      (set-car! (cdr mutex) t)))
+
+(define make-semaphore
+    (lambda (n)
+      (list* 'semaphore n (make-mutex) (make-queue))))
+
+(define wait!
+    (lambda (semaphore)
+      (acquire! (caddr semaphore))
+      (if (> (cadr semaphore) 0)
+          (progn
+            (set-car! (cdr semaphore) (- (cadr semaphore) 1))
+            (release! (caddr semaphore)))
+          (call/cc
+           (lambda (caller)
+             (enqueue! (cdddr semaphore) caller)
+             (release! (caddr semaphore))
+             (dispatch!))))))
+
+(define post!
+    (lambda (semaphore)
+      (acquire! (caddr semaphore))
+      (lambda ()
+        (if (empty? (cdddr semaphore))
+            (set-car! (cdr semaphore) (+ (cadr semaphore) 1))
+            (enqueue! processes (dequeue! (cdddr semaphore)))))
+      (release! (caddr semaphore))))

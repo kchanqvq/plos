@@ -1,0 +1,24 @@
+(load "2-lambda.plos")
+
+(define processes (make-queue))
+
+(define dispatch!
+    (lambda () ((dequeue! processes) nil)))
+
+(define yield
+    (lambda ()
+      (call/cc
+       (lambda (caller)
+         (enqueue! processes caller)
+         (dispatch!)))))
+
+(define spawn
+    (lambda (thunk)
+      (call/cc
+       (lambda (caller)
+         (call/cc
+          (lambda (process)
+            (enqueue! processes process)
+            (caller process)))
+         (thunk)
+         (dispatch!)))))

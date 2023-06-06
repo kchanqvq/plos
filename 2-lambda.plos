@@ -1,0 +1,26 @@
+(define make-queue
+    (lambda ()
+      (define cell (list 'head))
+      (list* 'queue cell cell)))
+
+(define empty?
+    (lambda (queue)
+      (not (cdddr queue))))
+
+(define enqueue!
+    (lambda (queue item)
+      (define cell (list item))
+      (set-cdr! (cadr queue) cell)
+      (set-car! (cdr queue) cell)
+      item))
+
+(define dequeue!
+    (lambda (queue)
+      (define head (cddr queue))
+      (if (cdr head)
+          (progn
+            (define item (cadr head))
+            (set-car! (cdr head) 'head)
+            (set-cdr! (cdr queue) (cdr head))
+            item)
+          (error! "Empty queue."))))

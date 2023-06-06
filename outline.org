@@ -1,0 +1,79 @@
+* Meta-Circular Evaluator
+** Applicative Evaluator
+** Lambda and Closure
+[[https://apps.dtic.mil/sti/pdfs/ADA030751.pdf][LAMBDA: THE ULTIMATE IMPERATIVE]]
+** (?) Closure representations
+Flat closure and linked closure are qualitatively different in some specific cases because of different reachability, e.g. garbage collection and persistent store.
+
+Not sure whether or where to place this, though. This is very much a compiler topic.
+** Continuation Passing Style
+We now no longer "non-trivially" uses the host Lisp system's function calling mechanisms. In principle, once helper functions are sufficiently inlined, the evaluator only ever makes tail calls (i.e. the ultimate GOTO) and the call stack of the host Lisp system never grows. The progress of our computation is instead tracked by our CONT argument.
+** Defunctionalization
+The previous interpreter uses the magic LAMBDA provided by the host Lisp to represent continuations. We now get rid of this reliance and represent continuations using CONSes instead.
+
+The evaluator is now completely tail-calling and first-order, resembling an abstract machine.
+
+The continuation is now explicitly represented by a list structure and can be easily inspected and manipulated from PLOS. The resemblance to conventional function call stacks is apparent.
+
+* Continuation and Processes
+** Cooperative Threading
+[[https://dl.acm.org/doi/pdf/10.1145/800087.802786][CONTINUATION-BASED MULTIPROCESSING]]
+** Shared-Memory Synchronization
+*** Mutex
+*** Conditional Variables
+*** Semaphores
+** CSP-based Concurrency
+[[https://wingolog.org/archives/2017/06/29/a-new-concurrent-ml][A New Concurrent ML]]
+** (?) Symmetric Multiprocessing
+*** Synchronization primitives
+Compare-and-Swap
+*** Scheduling
+
+* Interrupt
+** Preemptive Multi-Processing
+Naivest implementation: Count ticks at safe-point.
+** Handling interrupt at Safe-points
+*** Signal Deferral for User Program
+[[http://www.sbcl.org/sbcl-internals/The-deferral-mechanism.html#The-deferral-mechanism][SBCL Internals: The deferral mechanism]]
+** Historical Problem: Time-Consuming Syscall
+** Asynchronous Syscall (OpenVMS)
+** PCLSRing
+ITS paper: [[http://fare.tunes.org/tmp/emergent/pclsr.htm][PCLSRing: Keeping Process State Modular]]
+PCLSRing is also used for handling interrupt safely: [[https://ccl.clozure.com/manual/chapter17.1.html#PC-lusering][Implementation Details of Clozure CL: PC-lusering]]
+** Interrupt as Messages
+The Loko Scheme Developer’s Manual: Interrupt Handling]]
+
+* (?) Memory management
+Note: I think it's possible to hack this fully within SBCL! We can safely allocate CONS cells outside SBCL's dynamic space (e.g. inside an MMAPed area we manage by ourselves). Back references from our heap into SBCL's heap is also not that problematic, because SBCL allocate function and symbols in immobile space (does not move), which seem to be only kinds of back references we need. Therefore no special treatment is needed for back references during one run of the host Lisp system. A fix-up procedure is probably required when loading heap image saved from a different host Lisp process.
+** Garbage Collection
+*** Textbook Mark-Sweep
+*** Copying GC
+*** (?) Generational GC
+** Page Swap
+
+* Persistence
+** Object Store
+Naivest implementation: Snapshot at check-point.
+Less naive: atomically swap snapshots.
+** Write-Ahead log
+** Copy-on-Write (shadow paging)
+** Orthogonal persistence
+
+* (?)Distributed Operating System
+** Distributed Shared Memory
+*** Coherence Protocol
+
+* (?) Object system
+** Let over Lambda
+** Class-based object system
+** Meta-object protocol
+** Generic functions and Multiple Dispatch
+** Prototype-based object system
+
+* (?) Capability-based Security
+
+* (?) Syntax Extension
+** Vau the ultimate abstraction
+** Extensible reader
+** Homiconic macro
+** Hygenic macro
