@@ -1,0 +1,46 @@
+(load "2-lambda.plos")
+
+(set-interrupt-handler!
+ (lambda (interrupt)
+   (if (eq? interrupt 'time)
+       (yield)
+       (error! "Unknown interrupt ~A." interrupt))))
+
+(define call-without-interrupt
+    (lambda (thunk)
+      (disable-interrupt!)
+      (define result (thunk))
+      (enable-interrupt!)
+      result))
+
+;;; Process
+
+(define processes (make-queue))
+
+(define dispatch!
+    (lambda ()
+      (call-without-interrupt
+       (lambda ()
+         ((dequeue! processes) nil)))))
+
+(define yield
+    (lambda ()
+      (call/cc
+       (lambda (caller)
+         (call-without-interrupt
+          (lambda ()
+            (enqueue! processes caller)
+            (dispatch!)))))))
+
+(define spawn
+    (lambda (thunk)
+      (call/cc
+       (lambda (caller)
+         (call/cc
+          (lambda (process)
+            (enqueue! processes process)
+            (caller process)))
+         (thunk)
+         (dispatch!)))))
+
+(enable-interrupt!)
