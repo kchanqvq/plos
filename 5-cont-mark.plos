@@ -1,0 +1,39 @@
+(define continuation-marker (lambda (x y) y))
+
+(define iterate-continuation-marks-for-frames
+    (lambda (frames f)
+      (if frames
+          (progn
+            (define frame (car frames))
+            (if (eq? (car frame) 'mapeval-cont)
+                (progn
+                  (define results (cadddr frame))
+                  (if (eq? (cadr results) continuation-marker)
+                      (f (car results))
+                      (iterate-continuation-marks-for-frames (cdr frames) f)))
+                (iterate-continuation-marks-for-frames (cdr frames) f)))
+          nil)))
+
+(define iterate-continuation-marks
+    (lambda (f)
+      (call/cc
+       (lambda (c)
+         (iterate-continuation-marks-for-frames (cdr c) f)))))
+
+(define make-parameter
+    (lambda (default-value)
+      (define parameter
+          (lambda ()
+            (call/cc
+             (lambda (return)
+               (iterate-continuation-marks
+                (lambda (mark)
+                  (if (eq? (car mark) parameter)
+                      (return (cdr mark))
+                      nil)))
+               default-value)))
+        parameter)))
+
+(define call-with-parameter
+    (lambda (parameter value thunk)
+      (continuation-marker (cons parameter value) (thunk))))

@@ -97,6 +97,7 @@ Return the value of the last form."
           (list
            (list (cons nil nil)
                  (cons t t)
+                 (cons 'eq? #'eq)
                  (cons 'cons? #'consp)
                  (cons 'cons #'cons)
                  (cons 'car #'car)
@@ -109,6 +110,7 @@ Return the value of the last form."
                  (cons 'cddr #'cddr)
                  (cons 'caddr #'caddr)
                  (cons 'cdddr #'cdddr)
+                 (cons 'cadddr #'cadddr)
                  (cons 'number? #'numberp)
                  (cons '+ #'+)
                  (cons '- #'-)
@@ -119,7 +121,9 @@ Return the value of the last form."
                  (cons 'print (lambda (x) (prin1 x) (terpri)))
                  (cons 'error! #'error)
                  (cons 'call/cc 'call/cc)))))
-    (eval '(load "5-process.plos") env
+    #+nil (eval '(load "5-process.plos") env
+                (list (list 'top-level (lambda (result) (declare (ignore result)) nil))))
+    (eval '(load "5-cont-mark.plos") env
           (list (list 'top-level (lambda (result) (declare (ignore result)) nil))))
     (handler-case
         (loop

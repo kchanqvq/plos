@@ -14,6 +14,7 @@ The previous interpreter uses the magic LAMBDA provided by the host Lisp to repr
 The evaluator is now completely tail-calling and first-order, resembling an abstract machine.
 
 The continuation is now explicitly represented by a list structure and can be easily inspected and manipulated from PLOS. The resemblance to conventional function call stacks is apparent.
+*** Continuation Marks and Dynamic-Scoped Variable
 
 * Continuation and Processes
 ** Cooperative Threading
