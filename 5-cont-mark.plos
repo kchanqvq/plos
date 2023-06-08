@@ -1,3 +1,5 @@
+;; Loadable using 5-defunctionalize.lisp or later.
+
 (define continuation-marker (lambda (x y) y))
 
 (define iterate-continuation-marks-for-frames

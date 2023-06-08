@@ -89,7 +89,6 @@ Return the value of the last form."
                  (cons '> #'>)
                  (cons 'print (lambda (x) (prin1 x) (terpri)))
                  (cons 'error! #'error)))))
-    (eval '(load "2-lambda.plos") env)
     (handler-case
         (loop
           (format t "~&PLOS-EVAL> ")

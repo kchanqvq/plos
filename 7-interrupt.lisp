@@ -23,7 +23,9 @@
         value)
       (error "Cannot define ~S in null environment." symbol)))
 
-(defvar *pending-interrupt* nil)
+(defvar *ticks* -1)
+
+(defvar *enable-interrupt-flag* nil)
 
 (defvar *interrupt-handler*
   (lambda (interrupt)
@@ -65,8 +67,19 @@ Return the value of the last form."
       (eval (car forms) env cont)))
 
 (defun apply (op args cont)
-  (if *pending-interrupt*
-      (apply *interrupt-handler* (list *pending-interrupt*) (cons (list* 'interrupted-apply op args) cont))
+  (if (if (< *ticks* 0)
+          nil
+          (progn
+            (setq *ticks* (- *ticks* 1))
+            (if (= *ticks* 0)
+                (if *enable-interrupt-flag* t
+                    (progn
+                      ;; Arange to trigger interrupt the next time *ENABLE-INTERRUPT-FLAG* is set
+                      (setq *ticks* 1)
+                      nil))
+                nil)))
+      (apply *interrupt-handler* (list 'time)
+             (cons (list* 'interrupted-apply op args) cont))
       (cond
         ((functionp op) (next cont (cl:apply op args)))
         ((tagged-list? op 'closure)
@@ -107,6 +120,7 @@ Return the value of the last form."
           (list
            (list (cons nil nil)
                  (cons t t)
+                 (cons 'eq? #'eq)
                  (cons 'cons? #'consp)
                  (cons 'cons #'cons)
                  (cons 'car #'car)
@@ -119,6 +133,7 @@ Return the value of the last form."
                  (cons 'cddr #'cddr)
                  (cons 'caddr #'caddr)
                  (cons 'cdddr #'cdddr)
+                 (cons 'cadddr #'cadddr)
                  (cons 'number? #'numberp)
                  (cons '+ #'+)
                  (cons '- #'-)
@@ -130,10 +145,11 @@ Return the value of the last form."
                  (cons 'error! #'error)
                  (cons 'call/cc 'call/cc)
                  (cons 'set-interrupt-handler!
-                       (lambda (handler)
-                         (setq *interrupt-handler* handler)))))))
-    (eval '(load "5-process.plos") env
-          (list (list 'top-level (lambda (result) (declare (ignore result)) nil))))
+                       (lambda (handler) (setq *interrupt-handler* handler)))
+                 (cons 'set-timer!
+                       (lambda (ticks) (setq *ticks* ticks)))
+                 (cons 'set-enable-interrupt-flag!
+                       (lambda (enable?) (setq *enable-interrupt-flag* enable?)))))))
     (handler-case
         (loop
           (format t "~&PLOS-EVAL> ")

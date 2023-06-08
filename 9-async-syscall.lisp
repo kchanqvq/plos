@@ -23,6 +23,14 @@
         value)
       (error "Cannot define ~S in null environment." symbol)))
 
+(defvar *pending-interrupt* nil)
+
+(defvar *enable-interrupt-flag* nil)
+
+(defvar *interrupt-handler*
+  (lambda (interrupt)
+    (error "Received ~A, but *INTERRUPT-HANDLER* is not set." interrupt)))
+
 (defun eval (form env cont)
   (cond
     ((symbolp form) (next cont (lookup env form)))
@@ -58,19 +66,25 @@ Return the value of the last form."
             (cons (list 'eval-multiple-cont env (cdr forms)) cont))
       (eval (car forms) env cont)))
 
+(defun %current-time ()
+  (float (/ (get-internal-real-time) internal-time-units-per-second)))
+
 (defun apply (op args cont)
-  (cond
-    ((functionp op) (next cont (cl:apply op args)))
-    ((tagged-list? op 'closure)
-     (eval-multiple (cdddr op)
-                    (cons (mapcar #'cons (caddr op) args)
-                          (cadr op))
-                    cont))
-    ((eq op 'call/cc)
-     (apply (car args) (list (cons 'continuation cont)) cont))
-    ((tagged-list? op 'continuation)
-     (next (cdr op) (car args)))
-    (t (error "~S is not applicable." op))))
+  (if (and *pending-interrupt* *enable-interrupt-flag*)
+      (apply *interrupt-handler* (list *pending-interrupt*)
+             (cons (list* 'interrupted-apply op args) cont))
+      (cond
+        ((functionp op) (next cont (cl:apply op args)))
+        ((tagged-list? op 'closure)
+         (eval-multiple (cdddr op)
+                        (cons (mapcar #'cons (caddr op) args)
+                              (cadr op))
+                        cont))
+        ((eq op 'call/cc)
+         (apply (car args) (list (cons 'continuation cont)) cont))
+        ((tagged-list? op 'continuation)
+         (next (cdr op) (car args)))
+        (t (error "~S is not applicable." op)))))
 
 (defun next (frames value)
   (let ((frame (car frames))
@@ -89,6 +103,8 @@ Return the value of the last form."
            (eval-multiple (caddr frame) (cadr frame) cont))
           ((tagged-list? frame 'top-level)
            (cl:funcall (cadr frame) value))
+          ((tagged-list? frame 'interrupted-apply)
+           (apply (cadr frame) (cddr frame) cont))
           (t (error "Ill-formed continuation frame ~S." frame)))))
 
 (defun boot ()
@@ -120,7 +136,19 @@ Return the value of the last form."
                  (cons '> #'>)
                  (cons 'print (lambda (x) (prin1 x) (terpri)))
                  (cons 'error! #'error)
-                 (cons 'call/cc 'call/cc)))))
+                 (cons 'call/cc 'call/cc)
+                 (cons 'set-interrupt-handler!
+                       (lambda (handler) (setq *interrupt-handler* handler)))
+                 (cons 'set-timer!
+                       (lambda (ticks)
+                         (sb-ext:schedule-timer
+                          (sb-ext:make-timer
+                           (lambda () (setq *pending-interrupt* 'time)))
+                          (* ticks 1e-9))))
+                 (cons 'set-enable-interrupt-flag!
+                       (lambda (enable?) (setq *enable-interrupt-flag* enable?)))
+                 (cons 'sleep (lambda (time) (sleep time)))
+                 (cons 'current-time #'%current-time)))))
     (handler-case
         (loop
           (format t "~&PLOS-EVAL> ")

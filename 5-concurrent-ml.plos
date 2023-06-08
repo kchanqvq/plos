@@ -1,3 +1,5 @@
+;; Loadable using 5-defunctionalize.lisp or later.
+
 (load "5-process.plos")
 
 (define make-channel

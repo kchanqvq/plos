@@ -1,3 +1,5 @@
+;; Loadable using 5-defunctionalize.lisp or later.
+
 (load "2-lambda.plos")
 
 (define processes (make-queue))
@@ -22,3 +24,7 @@
             (caller process)))
          (thunk)
          (dispatch!)))))
+
+;;; For experiements
+
+(define dead-loop! (lambda () (dead-loop!)))

@@ -1,0 +1,13 @@
+(load "7-preemptive.plos")
+
+(define async-sleep
+    (lambda (time)
+      (define start-time (current-time))
+      (define loop
+          (lambda ()
+            (if (< (- (current-time) start-time) time)
+                (progn
+                  (yield)
+                  (loop))
+                t)))
+      (loop)))

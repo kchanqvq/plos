@@ -1,17 +1,16 @@
+;; Loadable using 7-interrupt.lisp or later.
+
 (load "2-lambda.plos")
+
+(define context-switch-ticks 1000)
 
 (set-interrupt-handler!
  (lambda (interrupt)
    (if (eq? interrupt 'time)
-       (yield)
+       (progn
+         (set-timer! context-switch-ticks)
+         (yield))
        (error! "Unknown interrupt ~A." interrupt))))
-
-(define call-without-interrupt
-    (lambda (thunk)
-      (disable-interrupt!)
-      (define result (thunk))
-      (enable-interrupt!)
-      result))
 
 ;;; Process
 
@@ -19,18 +18,18 @@
 
 (define dispatch!
     (lambda ()
-      (call-without-interrupt
-       (lambda ()
-         ((dequeue! processes) nil)))))
+      (set-enable-interrupt-flag! nil)
+      (define process (dequeue! processes))
+      (set-enable-interrupt-flag! t)
+      (process nil)))
 
 (define yield
     (lambda ()
       (call/cc
        (lambda (caller)
-         (call-without-interrupt
-          (lambda ()
-            (enqueue! processes caller)
-            (dispatch!)))))))
+         (set-enable-interrupt-flag! nil)
+         (enqueue! processes caller)
+         (dispatch!)))))
 
 (define spawn
     (lambda (thunk)
@@ -38,9 +37,16 @@
        (lambda (caller)
          (call/cc
           (lambda (process)
+            (set-enable-interrupt-flag! nil)
             (enqueue! processes process)
+            (set-enable-interrupt-flag! t)
             (caller process)))
          (thunk)
          (dispatch!)))))
 
-(enable-interrupt!)
+(set-timer! context-switch-ticks)
+(set-enable-interrupt-flag! t)
+
+;;; For experiements
+
+(define dead-loop! (lambda () (dead-loop!)))
