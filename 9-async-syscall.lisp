@@ -71,8 +71,11 @@ Return the value of the last form."
 
 (defun apply (op args cont)
   (if (and *pending-interrupt* *enable-interrupt-flag*)
-      (apply *interrupt-handler* (list *pending-interrupt*)
-             (cons (list* 'interrupted-apply op args) cont))
+      (let ((interrupt *pending-interrupt*))
+        (setf *enable-interrupt-flag* nil)
+        (setf *pending-interrupt* nil)
+        (apply *interrupt-handler* (list interrupt nil nil)
+               (cons (list* 'interrupted-apply op args) cont)))
       (cond
         ((functionp op) (next cont (cl:apply op args)))
         ((tagged-list? op 'closure)

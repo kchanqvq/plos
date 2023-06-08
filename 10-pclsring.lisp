@@ -79,7 +79,7 @@ Return the value of the last form."
 (defun apply (op args cont)
   (if (and *pending-interrupt* *enable-interrupt-flag*)
       (let ((interrupt *pending-interrupt*))
-        (setq *pending-interrupt* nil)
+        (setf *pending-interrupt* nil)
         (apply *interrupt-handler* (list interrupt nil nil)
                (cons (list* 'interrupted-apply op args) cont)))
       (cond
@@ -89,7 +89,7 @@ Return the value of the last form."
                           (next cont (cl:apply op args)))))
             (if (eq result '%interrupted)
                 (let ((interrupt *pending-interrupt*))
-                  (setq *pending-interrupt* nil)
+                  (setf *pending-interrupt* nil)
                   (apply *interrupt-handler* (list interrupt nil nil)
                          (if (eq op #'%sleep)
                              (let ((remaining-time (- *sleep-until* (%current-time))))

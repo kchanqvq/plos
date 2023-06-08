@@ -1,0 +1,26 @@
+* Course Overview
+This course introduces students to the fundamental principles of operating systems from a programming language perspective. "Low-level" facilities traditionally provided by the operating system are explained and implemented using Common Lisp, a high-level language. Students start with the recursive definiton of a meta-circular interpreter for a simple Scheme-like Lisp dialect, then progressively lower the interpreter into a state machine and extend it with operating system functionalities. Topics will include CPS transformation, defunctionalization, multiprocessing, interrupt handling, automatic memory management, page swapping and persistent store.
+
+Prerequisites: CS242. This course uses a small subset of Common Lisp as implementation language. No prior experience with Lisp is required, but familarity with procedural programming (experience in one of OCaml, Haskell, JavaScript, Python or other high-level procedural languages) is advised.
+
+* Motivation
+Most operating system courses today are centered around the particular design, implementation and application of Unix-like operating systems. This course instead takes a first-principle driven approach. A simple universal interpreter is taken as the starting point and progressively refined to satisfy practical application requirements. For many design problems, multiple alternative approaches are explored and the tradeoff is discussed. The choice to use a high-level language greatly reduces implementation effort and makes the code easier to explain and understand.
+
+* Schedule
+** Week 1
+Tool of the trade: Basics of Lisp programming and Lisp environment.
+Meta-circular evaluator.
+** Week 2
+CPS transformation. Defunctionalization.
+** Week 3
+Cooperative Threading. CSP-based concurrency.
+** Week 4
+Interrupt Handling. Preemptive Scheduling
+** Week 5
+Garbage Collection. Page Swapping.
+** Week 6
+Object  persistence.
+** Week 7
+** Week 8
+** Week 9
+** Week 10
