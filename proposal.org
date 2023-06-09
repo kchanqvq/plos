@@ -15,7 +15,7 @@ CPS transformation. Defunctionalization.
 ** Week 3
 Cooperative Threading. CSP-based concurrency.
 ** Week 4
-Interrupt Handling. Preemptive Scheduling
+Interrupt Handling. Preemptive Scheduling.
 ** Week 5
 Symmetric Multi-processing.
 ** Week 6
@@ -23,6 +23,7 @@ Garbage Collection.
 ** Week 7
 Page Swapping. Orthogonal persistence.
 ** Week 8
-Object persistence. Capability-based Security.
+Orthogonal persistence 2. Object persistence.
 ** Week 9
+Capability-based security.
 ** Week 10
