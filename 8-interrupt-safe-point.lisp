@@ -66,9 +66,6 @@ Return the value of the last form."
             (cons (list 'eval-multiple-cont env (cdr forms)) cont))
       (eval (car forms) env cont)))
 
-(defun %current-time ()
-  (float (/ (get-internal-real-time) internal-time-units-per-second)))
-
 (defun apply (op args cont)
   (if (and *pending-interrupt* *enable-interrupt-flag*)
       (let ((interrupt *pending-interrupt*))
@@ -146,11 +143,9 @@ Return the value of the last form."
                          (sb-ext:schedule-timer
                           (sb-ext:make-timer
                            (lambda () (setq *pending-interrupt* 'time)))
-                          (* ticks 1e-9))))
+                          (* tick 1e-9))))
                  (cons 'set-enable-interrupt-flag!
-                       (lambda (enable?) (setq *enable-interrupt-flag* enable?)))
-                 (cons 'sleep (lambda (time) (sleep time)))
-                 (cons 'current-time #'%current-time)))))
+                       (lambda (enable?) (setq *enable-interrupt-flag* enable?)))))))
     (handler-case
         (loop
           (format t "~&PLOS-EVAL> ")
