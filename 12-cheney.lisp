@@ -44,11 +44,6 @@
     (setf (cdr cell) b)
     cell))
 
-;; The GC ritual:
-;; (flip-space)
-;; (setf <some-register> (move <some-register>))
-;; (scan (sb-sys:sap-int *to-space*))
-
 (defun flip-space ()
   (rotatef *to-space* *from-space*)
   (setf *free-addr* (sb-sys:sap-int *to-space*))
