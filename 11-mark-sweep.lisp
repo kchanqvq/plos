@@ -12,8 +12,10 @@
 
 ;;; Memory Management
 
+(defconstant +heap-size+ (* 1024 1024))
+
 (defvar *heap*
-  (sb-posix:mmap nil (* 1024 1024) (logior sb-posix:prot-read sb-posix:prot-write)
+  (sb-posix:mmap nil +heap-size+ (logior sb-posix:prot-read sb-posix:prot-write)
                  (logior sb-posix:map-anon sb-posix:map-private) -1 0))
 
 (defun addr-to-cons (addr)
@@ -22,30 +24,43 @@
 (defun cons-to-addr (cons)
   (logxor (sb-kernel:get-lisp-obj-address cons) sb-vm:list-pointer-lowtag))
 
-(defvar *freelist* nil)
 (defvar *room* 0)
 
-(defvar *mark-bitmap* (make-array (/ (* 1024 1024) 16) :element-type 'bit))
+(defmacro get-bitmap (sap index)
+  `(ldb (byte 1 (logand ,index 7))
+        (sb-sys:sap-ref-8 ,sap (ash ,index -3))))
+
+(defmacro get-freelist ()
+  `(sb-sys:sap-ref-lispobj *heap* 0))
+
+(defvar *mark-bitmap* *heap*)
+
+(defvar *cons-start-addr*
+  (+ (sb-sys:sap-int *heap*)
+     (ash (ash +heap-size+ -4) -3)))
 
 (defun marked? (addr)
-  (= (aref *mark-bitmap* (/ (- addr (sb-sys:sap-int *heap*)) 16)) 1))
+  (let ((index (ash (- addr (sb-sys:sap-int *heap*)) -4)))
+    (= (get-bitmap *mark-bitmap* index)
+       1)))
 
 (defun set-marked! (addr marked?)
-  (setf (aref *mark-bitmap* (/ (- addr (sb-sys:sap-int *heap*)) 16))
-        (if marked? 1 0)))
+  (let ((index (ash (- addr (sb-sys:sap-int *heap*)) -4)))
+    (setf (get-bitmap *mark-bitmap* index)
+          (if marked? 1 0))))
 
 (defmacro gc (&rest root-registers)
   `(progn
-     (setf *freelist* nil)
+     (setf (get-freelist) nil)
      (setf *room* 0)
      ,@(cl:mapcar
         (lambda (r) `(mark ,r))
         root-registers)
-     (sweep (sb-sys:sap-int *heap*))))
+     (sweep *cons-start-addr*)))
 
 (defun cons (a b)
-  (let ((cell *freelist*))
-    (setf *freelist* (cdr *freelist*))
+  (let ((cell (get-freelist)))
+    (setf (get-freelist) (cdr cell))
     (setf *room* (- *room* 1))
     (setf (car cell) a)
     (setf (cdr cell) b)
@@ -68,8 +83,8 @@
         (if (marked? addr)
             (set-marked! addr nil)
             (let ((cell (addr-to-cons addr)))
-              (setf (cdr cell) *freelist*)
-              (setf *freelist* cell)
+              (setf (cdr cell) (get-freelist))
+              (setf (get-freelist) cell)
               (setf *room* (+ *room* 1))))
         (sweep (+ addr 16)))
       nil))
