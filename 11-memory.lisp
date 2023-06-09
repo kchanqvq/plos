@@ -29,6 +29,14 @@
 (defun cons-to-addr (cons)
   (logxor (sb-kernel:get-lisp-obj-address cons) sb-vm:list-pointer-lowtag))
 
+(defmacro gc (&rest root-registers)
+  `(progn
+     (flip-space)
+     ,@(cl:mapcar
+        (lambda (r) `(setf ,r (move ,r)))
+        root-registers)
+     (scan (sb-sys:sap-int *to-space*))))
+
 (defun cons (a b)
   (let ((cell (addr-to-cons *free-addr*)))
     (setf *free-addr* (+ *free-addr* 16))
@@ -45,7 +53,7 @@
   (rotatef *to-space* *from-space*)
   (setf *free-addr* (sb-sys:sap-int *to-space*))
   (setf *top-addr* (+ *free-addr* (* 1024 1024)))
-  nil)
+ nil)
 
 (defun in-space? (cell space)
   (and (consp cell)
@@ -176,14 +184,9 @@ Return the value of the last form."
 (defun apply (op args cont)
   (if (< (+ *free-addr* 1024) *top-addr*)
       nil
-      (sb-sys:without-gcing
+      (progn
         (format t "Garbage Collection triggered.~%")
-        (flip-space)
-        (setf op (move op))
-        (setf args (move args))
-        (setf cont (move cont))
-        (setf *interrupt-handler* (move *interrupt-handler*))
-        (scan (sb-sys:sap-int *to-space*))))
+        (gc op args cont *interrupt-handler*)))
   (if (and *pending-interrupt* *enable-interrupt-flag*)
       (let ((interrupt *pending-interrupt*))
         (setf *pending-interrupt* nil)
